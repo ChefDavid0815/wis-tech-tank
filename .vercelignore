@@ -1,0 +1,11 @@
+.git/
+*.zip
+.env*
+node_modules/
+artifacts/
+release/
+runtime/
+dist/
+public/assets/
+docs/
+打开演示.html

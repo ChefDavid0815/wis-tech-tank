@@ -1,0 +1,14 @@
+node_modules/
+.vite/
+*.log
+*.zip
+artifacts/
+dist/
+release/
+runtime/
+public/assets/
+打开演示.html
+.vercel/
+.env*
+!.env.example
+.vercel

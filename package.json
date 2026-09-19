@@ -1,0 +1,32 @@
+{
+  "name": "stride-device-simulator",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173",
+    "build": "tsc --noEmit && node scripts/build.mjs",
+    "test": "node --experimental-strip-types --test tests/engine.test.ts",
+    "start": "node scripts/server.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
+    "@tensorflow-models/coco-ssd": "^2.2.3",
+    "@tensorflow/tfjs": "^4.22.0",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.180.0",
+    "agent-browser": "^0.38.1",
+    "esbuild": "^0.25.10",
+    "playwright": "^1.63.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7"
+  },
+  "overrides": {
+    "sharp": "0.35.4"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}

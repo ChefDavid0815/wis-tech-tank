@@ -1,0 +1,15 @@
+import { build } from 'esbuild';
+import { mkdir, writeFile, copyFile, cp } from 'node:fs/promises';
+await mkdir('public/assets/ort', {recursive:true});
+for(const file of ['ort-wasm-simd-threaded.jsep.mjs','ort-wasm-simd-threaded.jsep.wasm','ort-wasm-simd-threaded.mjs','ort-wasm-simd-threaded.wasm']) await copyFile(`node_modules/onnxruntime-web/dist/${file}`,`public/assets/ort/${file}`);
+await build({entryPoints:['src/perception-worker.ts'],bundle:true,minify:true,format:'esm',platform:'browser',target:'es2022',outfile:'public/assets/perception-worker.js'});
+const result = await build({ entryPoints: ['src/main.ts'], bundle: true, write: false, minify: true, format: 'iife', target: 'es2022', outdir: 'dist', legalComments: 'inline' });
+const js = result.outputFiles.find(f => f.path.endsWith('.js')).text.replace(/<\/script/gi, '<\\/script');
+const css = result.outputFiles.find(f => f.path.endsWith('.css')).text;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#205b49"><meta name="description" content="STRIDE · WIS TECH TANK. A bilingual classroom environment simulator: nine walking scenarios, speech and haptic feedback, plus optional local computer vision."><meta property="og:title" content="STRIDE · WIS TECH TANK"><meta property="og:description" content="A little awareness. A better next step. Explore nine environments in a classroom simulation."><title>STRIDE — Assistive Walking Lab</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"><style>${css}</style></head><body><div id="app"></div><script>${js}</script></body></html>`;
+await mkdir('dist', { recursive: true });
+await writeFile('dist/STRIDE-Simulator.html', html);
+await writeFile('dist/index.html', html);
+await cp('public', 'dist', { recursive: true });
+await copyFile('dist/STRIDE-Simulator.html', '打开演示.html');
+console.log(`Built offline simulator: ${(Buffer.byteLength(html) / 1024).toFixed(0)} KB. Open 打开演示.html in Edge or Chrome.`);

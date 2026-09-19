@@ -1,0 +1,75 @@
+import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { homedir } from 'node:os';
+import sharp from 'sharp';
+const out=resolve('artifacts');await mkdir(out,{recursive:true});
+// A known, labeled fixture feeds Chromium's virtual webcam. Never opens the user's physical camera.
+const {data}=await sharp('artifacts/cats.jpg').resize(640,480).removeAlpha().raw().toBuffer({resolveWithObject:true});
+const W=640,H=480,Y=Buffer.alloc(W*H),U=Buffer.alloc(W*H/4),V=Buffer.alloc(W*H/4);
+const clamp=x=>Math.max(0,Math.min(255,Math.round(x)));
+for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=(y*W+x)*3,r=data[i],g=data[i+1],b=data[i+2];Y[y*W+x]=clamp(16+.257*r+.504*g+.098*b);if(x%2===0&&y%2===0){const k=(y/2)*(W/2)+x/2;U[k]=clamp(128-.148*r-.291*g+.439*b);V[k]=clamp(128+.439*r-.368*g-.071*b);}}
+const fixture=resolve(out,'camera-fixture.y4m');await writeFile(fixture,Buffer.concat([Buffer.from(`YUV4MPEG2 W${W} H${H} F10:1 Ip A1:1 C420jpeg\nFRAME\n`),Y,U,V]));
+const browser=await chromium.launch({headless:true,executablePath:process.env.STRIDE_CHROME||resolve(homedir(),'.agent-browser/browsers/chrome-153.0.8010.52/chrome.exe'),args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream',`--use-file-for-fake-video-capture=${fixture}`]});
+const results=[];const failures=[];const add=(name,evidence)=>{results.push({name,evidence});console.log('PASS',name,JSON.stringify(evidence));};
+const context=await browser.newContext({viewport:{width:1440,height:1000},permissions:['camera']});
+await context.addInitScript(()=>{
+  window.__spoken=[];window.__stream=null;
+  speechSynthesis.speak=u=>{window.__spoken.push(u.text);};speechSynthesis.cancel=()=>{};
+  const original=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+  navigator.mediaDevices.getUserMedia=async args=>{const stream=await original(args);window.__stream=stream;return stream;};
+});
+const page=await context.newPage();page.on('pageerror',error=>failures.push(error.message));
+const externalRequests=[];page.on('request',r=>{if(r.url().startsWith('http')&&new URL(r.url()).hostname!=='127.0.0.1')externalRequests.push(r.url());});
+try {
+  await page.goto('http://127.0.0.1:4173');await page.locator('#scene-title').waitFor();
+  assert.equal(await page.locator('#scene-title').textContent(),'Smooth pavement');
+  add('Initial simulation renders',{canvas:await page.locator('#world canvas').count()});
+  await page.locator('[data-scenario="stairs"]').click();await page.locator('#start').click();
+  await page.waitForFunction(()=>document.querySelector('#phase-badge').textContent==='Stopped for safety',{},{timeout:12000});
+  const speech=await page.evaluate(()=>window.__spoken);
+  assert.ok(speech.some(s=>s.startsWith('3.')));assert.ok(speech.some(s=>s.startsWith('2.')));assert.ok(speech.some(s=>s.startsWith('1. Stop.')));
+  assert.match(await page.locator('#distance').textContent(),/0.65/);
+  add('Stair countdown, haptic priority and pre-contact stop',{speech,distance:await page.locator('#distance').textContent()});
+  await page.locator('#reset').click();await page.locator('#start').click();await page.waitForTimeout(400);await page.locator('#start').click();
+  const paused=await page.locator('#distance').textContent();await page.waitForTimeout(600);assert.equal(await page.locator('#distance').textContent(),paused);assert.equal(await page.locator('#pattern-name').textContent(),'Motor idle');
+  add('Pause freezes motion and haptics',{distance:paused});
+  await page.locator('#mode-real').click();await page.locator('#camera-start').click();
+  await page.waitForFunction(()=>document.querySelector('#track-count').textContent==='2',{},{timeout:60000});
+  await page.waitForFunction(()=>document.querySelector('#layout-model-status').textContent.includes('ms'),{},{timeout:45000});
+  const liveEvidence={tracks:await page.locator('#track-list').innerText(),fps:await page.locator('#camera-rate').innerText(),status:await page.locator('.model-status').innerText()};
+  assert.match(liveEvidence.tracks,/cat/);assert.match(liveEvidence.tracks,/left/);assert.match(liveEvidence.tracks,/right/);
+  add('Virtual webcam → real ML → multi-object environment map',liveEvidence);
+  await page.locator('#depth-toggle').check();await page.waitForFunction(()=>document.querySelector('#depth-model-status').textContent.includes('ms'),{},{timeout:60000});
+  await page.waitForTimeout(1000);
+  const depthEvidence=await page.locator('.model-status').innerText();assert.match(depthEvidence,/Depth ready/);
+  add('Real monocular depth inference in worker',{status:depthEvidence,externalRequests});
+  await page.screenshot({path:resolve(out,'camera-models-verified.png'),fullPage:true});
+  await page.locator('#camera-start').click();await page.waitForTimeout(350);
+  assert.equal(await page.evaluate(()=>window.__stream.getTracks().every(t=>t.readyState==='ended')),true);
+  assert.equal(await page.locator('#track-count').textContent(),'0');assert.equal(await page.locator('#pattern-name').textContent(),'Motor idle');
+  add('Stop releases camera and clears stale environment',{});
+  await page.locator('#camera-start').click();await page.waitForFunction(()=>document.querySelector('#camera-status').textContent==='Camera active',{},{timeout:30000});await page.locator('#mode-simulation').click();
+  assert.equal(await page.evaluate(()=>window.__stream.getTracks().every(t=>t.readyState==='ended')),true);
+  add('Switching mode releases camera',{});
+  await page.locator('#language').click();assert.match(await page.locator('#scene-title').innerText(),/下行楼梯/);
+  await page.screenshot({path:resolve(out,'simulation-chinese.png'),fullPage:true});
+  add('Chinese UI and preserved simulation',{});
+  await page.locator('#mode-real').click();await page.locator('#image-input').setInputFiles('artifacts/house.jpg');
+  await page.waitForFunction(()=>document.querySelector('#track-list').textContent.includes('墙'),{},{timeout:45000});
+  add('Room segmentation with real image inference',{tracks:await page.locator('#track-list').innerText()});
+  await page.locator('#camera-start').click();
+  await page.evaluate(()=>{navigator.mediaDevices.getUserMedia=async()=>{throw new DOMException('Permission denied for test','NotAllowedError');};});
+  await page.locator('#camera-start').click();await page.waitForFunction(()=>document.querySelector('#camera-message').textContent.includes('Permission denied'));
+  add('Permission denial reports actionable error',{message:await page.locator('#camera-message').innerText()});
+  await page.setViewportSize({width:390,height:844});await page.screenshot({path:resolve(out,'mobile-real.png'),fullPage:true});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+  add('Mobile layout has no horizontal overflow',{});
+  await page.locator('#mode-simulation').click();await page.locator('#event-details').evaluate(el=>el.open=true);
+  const downloadPromise=page.waitForEvent('download');await page.locator('#export').click();const download=await downloadPromise;await download.saveAs(resolve(out,'verified-session.json'));
+  const log=JSON.parse(await readFile(resolve(out,'verified-session.json'),'utf8'));assert.ok(log.events.some(e=>e.scenario==='stairs'));assert.ok(log.events.some(e=>e.scenario==='real-camera'));
+  add('Export contains simulation and actual inference events',{events:log.events.length});
+  assert.deepEqual(externalRequests,[]);assert.deepEqual(failures,[]);add('No browser errors or off-machine network requests',{});
+}catch(error){failures.push(error.stack||String(error));console.error(error);await page.screenshot({path:resolve(out,'browser-failure.png'),fullPage:true}).catch(()=>{});process.exitCode=1;}
+finally{await writeFile(resolve(out,'browser-check.json'),JSON.stringify({testedAt:new Date().toISOString(),hardwareCameraTested:false,videoInput:'Chromium virtual camera with image fixture',speech:'API calls observed; physical audio not evaluated',results,failures},null,2));await browser.close();}

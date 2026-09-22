@@ -3,10 +3,10 @@
 <h1 align="center">STRIDE<span>．</span></h1>
 <p align="center"><i>A little awareness. A better next step.</i></p>
 
-<a href="https://chefzc-wis-tech-tank.vercel.app"><img src="docs/assets/cover-v0.2.webp" width="100%" alt="A winding path through a lush green woodland, with soft morning light — STRIDE exhibition artwork" /></a>
+<a href="https://chefzc.dev/stride/"><img src="docs/assets/cover-v0.2.webp" width="100%" alt="A winding path through a lush green woodland, with soft morning light — STRIDE exhibition artwork" /></a>
 
 <p align="center"><b>English</b> · <a href="README.zh-CN.md">简体中文</a></p>
-<p align="center"><a href="https://chefzc-wis-tech-tank.vercel.app"><b>OPEN THE LAB ↗</b></a> &nbsp; / &nbsp; <a href="https://chefzc-homepage.vercel.app/school-gallery.html">THE EXHIBITION</a> &nbsp; / &nbsp; <a href="https://chefzc-homepage.vercel.app/post.html?article=wis-tech-tank">FIELD NOTES</a></p>
+<p align="center"><a href="https://chefzc.dev/stride/"><b>OPEN THE LAB ↗</b></a> &nbsp; / &nbsp; <a href="https://chefzc.dev/school-gallery.html">THE EXHIBITION</a> &nbsp; / &nbsp; <a href="https://chefzc.dev/post.html?article=wis-tech-tank">FIELD NOTES</a></p>
 
 ## 01 / A small world, made understandable
 

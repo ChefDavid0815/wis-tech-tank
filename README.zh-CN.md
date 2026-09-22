@@ -3,10 +3,10 @@
 <h1 align="center">STRIDE．</h1>
 <p align="center"><i>感知多一点，下一步更从容。</i></p>
 
-<a href="https://chefzc-wis-tech-tank.vercel.app"><img src="docs/assets/cover-v0.2.webp" width="100%" alt="清晨光线穿过森林，一条浅色步道延伸进绿意之中，STRIDE 展柜原创视觉" /></a>
+<a href="https://chefzc.dev/stride/"><img src="docs/assets/cover-v0.2.webp" width="100%" alt="清晨光线穿过森林，一条浅色步道延伸进绿意之中，STRIDE 展柜原创视觉" /></a>
 
 <p align="center"><a href="README.md">English</a> · <b>简体中文</b></p>
-<p align="center"><a href="https://chefzc-wis-tech-tank.vercel.app"><b>打开实验室 ↗</b></a> &nbsp; / &nbsp; <a href="https://chefzc-homepage.vercel.app/school-gallery.html">校园展柜</a> &nbsp; / &nbsp; <a href="https://chefzc-homepage.vercel.app/post.html?article=wis-tech-tank">读观察手记</a></p>
+<p align="center"><a href="https://chefzc.dev/stride/"><b>打开实验室 ↗</b></a> &nbsp; / &nbsp; <a href="https://chefzc.dev/school-gallery.html">校园展柜</a> &nbsp; / &nbsp; <a href="https://chefzc.dev/post.html?article=wis-tech-tank">读观察手记</a></p>
 
 ## 01 / 把环境，变成能理解的信息
 
